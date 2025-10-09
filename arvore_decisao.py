@@ -1,9 +1,8 @@
 import pandas as pd
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 # Criando o DataFrame simulado
 data = {
@@ -12,6 +11,7 @@ data = {
     'Garantia':          [1, 0, 1, 1, 0, 0, 1, 0], # 1=Sim, 0=Não
     'Aprova':            [1, 0, 1, 1, 0, 0, 1, 0] # 1=Aprovado, 0=Rejeitado
 }
+
 df = pd.DataFrame(data)
 
 # definindo X ( Variaves de entrada) e y (variável de saída)
@@ -148,3 +148,56 @@ if previsao_forest_stable == 0:
     print("-> MOTIVO DO ACERTO:")
     print("   O Random Forest usa 100 árvores. A maioria (votos para 0) reconheceu o risco do Histórico Ruim e da falta de Garantia, ignorando o valor médio da Renda. **O consenso coletivo evita o erro da árvore solitária.**")
 print("="*70)
+
+datasolo = {
+    'Argila_g_kg-1': [337.5, 362.5],
+    'Silte_g_kg-1': [106.75, 95.25],
+    'AreiaTotal_g_kg-1': [555.75, 542.25],
+    'Ds_Mg_m3': [1.26873408, 1.364322621],
+    'Pt_m3_m3': [0.521126048, 0.47912853],
+    'Macro_m3_m3': [0.044064808, 0.022227237],
+    'Micro_m3_m3': [0.477061241, 0.456901293],
+    'pHH20': [5.32, 5.34],
+    'COT_g_dm-3': [31.46879064, 34.69890168],
+    'CBM_µg C/g solo': [20.84596378, 20.81266352],
+    'RB_mg C de CO2 g-1 solo h-1': [27.10843373, 61.81485993],
+    'qCO2_mg C - CO2 g -1 BMS – C.h-1': [4.010927431, 3.673908733],
+    'IQS (aditivo)': [0.760265214, 0.708334246]
+}
+
+df = pd.DataFrame(datasolo)
+
+# --- Exemplo de separação entre entradas e saídas ---
+# X = físicos e químicos (sem os biológicos)
+X = df[['Argila_g_kg-1', 'Silte_g_kg-1', 'AreiaTotal_g_kg-1',
+        'Ds_Mg_m3', 'Pt_m3_m3', 'Macro_m3_m3', 'Micro_m3_m3', 'pHH20']]
+
+# y = atributos biológicos (exemplo)
+y = df[['COT_g_dm-3', 'CBM_µg C/g solo', 'RB_mg C de CO2 g-1 solo h-1',
+        'qCO2_mg C - CO2 g -1 BMS – C.h-1', 'IQS (aditivo)']]
+
+# Divisão treino/teste
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# Criação e treino do modelo Random Forest (para regressão)
+model = RandomForestRegressor(random_state=42)
+model.fit(X_train, y_train)
+
+
+
+# Previsão
+y_pred = model.predict(X_test)
+
+# Avaliação
+print("R²:", r2_score(y_test, y_pred))
+print("RMSE:", mean_squared_error(y_test, y_pred, squared=False))
+
+
+# Exemplo de previsão para novo solo
+novo_solo = pd.DataFrame([[350, 100, 550, 1.3, 0.5, 0.03, 0.47, 5.4]],
+                         columns=X.columns)
+previsao = model.predict(novo_solo)
+print("\nPrevisão de atributos biológicos:")
+print(previsao)
